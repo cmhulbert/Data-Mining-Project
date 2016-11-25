@@ -30,6 +30,7 @@ class Cob(object):
         self.cluster1 = [0, [0, 0, 0]]
         self.cluster2 = [0, [0, 0, 0]]
         self.setclusters()
+        self.mean = [0,0,0]
         self.setstats()
 
     def setkernelcenters(self):
@@ -58,9 +59,18 @@ class Cob(object):
         self.cluster2[0] = sizec2
 
     def setstats(self):
+        '''
+        calculates the mean in [L,a,b] form and set the the Cob.mean property
+        '''
         L = 0
         a = 0
         b = 0
-        for kernel in self.kernellist: 
+        numkernels = 0
+        for kernel in self.kernellist:
             L += kernel.mean[0]
-            
+            a += kernel.mean[1]
+            b += kernel.mean[2]
+            numkernels += 1
+        self.mean[0] = L / float(numkernels)
+        self.mean[1] = a / float(numkernels)
+        self.mean[2] = b / float(numkernels)
