@@ -30,7 +30,7 @@ class Cob(object):
         self.cluster1 = [0, [0, 0, 0]]
         self.cluster2 = [0, [0, 0, 0]]
         self.setclusters()
-        self.setstas()
+        self.setstats()
 
     def setkernelcenters(self):
         '''
