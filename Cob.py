@@ -42,9 +42,9 @@ class Cob(object):
         '''
         calculates kmeans centers for the cob from the centers of the kernels it contains
         '''
-        kmeans = KMeans(n_clusters=1).fit(self.kernelcenters)
+        kmeans = KMeans(n_clusters=2).fit(self.kernelcenters)
         self.cluster1[1] = kmeans.cluster_centers_[0]
-        self.cluster1[1] = kmeans.cluster_centers_[1]
+        self.cluster2[1] = kmeans.cluster_centers_[1]
         sizec1 = 0
         sizec2 = 0
         for label in kmeans.labels_:
