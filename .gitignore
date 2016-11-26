@@ -1,4 +1,9 @@
+# VS code config files
 .vscode/*
+
+#Compiled Python files
+*.pyc
+*.pyo
 
 # Windows image file caches
 Thumbs.db
