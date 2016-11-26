@@ -114,7 +114,7 @@ class Kernel(object):
         lablists = threeTupleToThreeLists(self.pixellist)
         plot = plt.figure()
         plt.close(1)
-        del(plot)
+        del plot
         plot = plt.figure()
         ax = plot.add_subplot(111, projection='3d')
         ax.scatter(lablists[0], lablists[1], lablists[2], c='b', marker='.')
@@ -123,8 +123,8 @@ class Kernel(object):
         ax.set_zlabel('b')
         if self.cluster1[1] != self.cluster2[1]:
             addpoints([self.cluster1[1], self.cluster2[1]], ax, marker='o')
-        elif self.mean != [0,0,0]:
-            addpoints(self.mean, ax, color = 'g')
+        elif self.mean != [0, 0, 0]:
+            addpoints(self.mean, ax, color='g', marker = 'o')
         plt.ion()
         plt.show()
         return ax
@@ -146,13 +146,16 @@ def threeTupleToThreeLists(threetuple):
     else:
         return threetuple
 
+
 def addpoints(listofpoints, axes, color='r', marker=','):
     '''
-    given a list of points of form [[x1,y1,z1],...,[xn,yn,zn]] and and axes, it will add the points to the axes 
+    given a list of points of form [[x1,y1,z1],...,[xn,yn,zn]] and axes,
+    it will add the points to the axes.
     '''
     lablists = threeTupleToThreeLists(listofpoints)
-    x,y,z = lablists[0], lablists[1], lablists[2]
-    axes.scatter(x,y,z, color = color, marker = marker)
+    x, y, z = lablists[0], lablists[1], lablists[2]
+    axes.scatter(x, y, z, color=color, marker=marker)
+
 
 def RgbToXYZ(R, G, B):
     '''TEST THIS FUNCTION'''

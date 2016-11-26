@@ -5,6 +5,8 @@ Created on Sep 14, 2016
 '''
 import Kernel
 from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 
 class Cob(object):
@@ -14,22 +16,25 @@ class Cob(object):
     -name
     -kernellist         list of kernels
     -numkernels         int
+    -mode               pixels or kernels
     -cluster1           [size, center]
     -cluster2           [size, center]
     -mean
     '''
 
-    def __init__(self, kernellist, name, pixelcluster = True):
+    def __init__(self, kernellist, name, pixelcluster=True):
         self.name = name
         self.kernellist = kernellist
         self.numkernels = len(self.kernellist)
         self.cluster1 = [0, [0, 0, 0]]
         self.cluster2 = [0, [0, 0, 0]]
+        self.mode = 'pixels'
         if pixelcluster == False:
+            self.mode = 'kernels'
             self.kernelcenters = []
             self.setkernelcenters()
-        self.setclusters(pixelcluster = pixelcluster)
-        self.mean = [0,0,0]
+        self.setclusters(pixelcluster=pixelcluster)
+        self.mean = [0, 0, 0]
         self.setstats()
 
     def setkernelcenters(self):
@@ -40,7 +45,7 @@ class Cob(object):
             self.kernelcenters.append(kernel.cluster1[1])
             self.kernelcenters.append(kernel.cluster2[1])
 
-    def setclusters(self, pixelcluster = True):
+    def setclusters(self, pixelcluster=True):
         '''
         calculates kmeans centers for the cob from the centers of the kernels it contains
         '''
@@ -81,3 +86,36 @@ class Cob(object):
         self.mean[0] = L / float(numkernels)
         self.mean[1] = a / float(numkernels)
         self.mean[2] = b / float(numkernels)
+
+    def showscatterplot(self):
+        '''
+        creates a 3d scatter plot whose points are either pixels from all the kernels in this cob,
+        or centers from the kmean clusters of each kernel in this cob.
+        '''
+        if self.mode == 'pixels':
+            pixels = []
+            for kernel in self.kernellist:
+                pixels.extend(kernel.pixellist)
+            lablists = Kernel.threeTupleToThreeLists(pixels)
+        else:
+            kernelcenters = []
+            for kernel in self.kernellist:
+                kernelcenters.append(kernel.cluster1[1])
+                kernelcenters.append(kernel.cluster2[1])
+            lablists = Kernel.threeTupleToThreeLists(kernelcenters)
+        plot = plt.figure()
+        plt.close(1)
+        del plot
+        plot = plt.figure()
+        axes = plot.add_subplot(111, projection='3d')
+        axes.scatter(lablists[0], lablists[1], lablists[2], c='b', marker='.')
+        axes.set_xlabel('L')
+        axes.set_ylabel('a')
+        axes.set_zlabel('b')
+        if self.cluster1[1] != self.cluster2[1]:
+            Kernel.addpoints([self.cluster1[1], self.cluster2[1]], axes, marker='o')
+        elif self.mean != [0, 0, 0]:
+            Kernel.addpoints(self.mean, axes, color='g', marker = 'o')
+        plt.ion()
+        plt.show()
+        return axes
