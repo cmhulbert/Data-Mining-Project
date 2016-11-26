@@ -61,3 +61,5 @@ class Repline(object):
                 basename = os.path.splitext(filenamewithoutlastextension)[0]
                 with open(self.directory + cobfile) as csvfile:
                     csvreader = csv.reader(csvfile)
+                    csvList = list(csvreader)
+
