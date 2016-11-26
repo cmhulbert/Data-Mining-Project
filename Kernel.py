@@ -25,7 +25,7 @@ class Kernel(object):
         -sd                 [lsd,asd,bsd] (standard deviations)
     '''
 
-    def __init__(self, pixellist, name, cluster = False):
+    def __init__(self, pixellist, name, cluster=False):
         self.name = name
         self.pixellist = []
         self.numberofpixels = 0
@@ -105,6 +105,54 @@ class Kernel(object):
             self.cluster2[0] = sizec2
             self.cluster2[1] = kmeans.cluster_centers_[1].tolist()
 
+    def showscatterplot(self):
+        '''
+        creates a 3d scatter plot with the points as the [L,a,b] values of the pixels
+        this kernel contains. if the mean and the clustser were calculated, they will
+        be added as well.
+        '''
+        lablists = threeTupleToThreeLists(self.pixellist)
+        plot = plt.figure()
+        plt.close(1)
+        del(plot)
+        plot = plt.figure()
+        ax = plot.add_subplot(111, projection='3d')
+        ax.scatter(lablists[0], lablists[1], lablists[2], c='b', marker='.')
+        ax.set_xlabel('L')
+        ax.set_ylabel('a')
+        ax.set_zlabel('b')
+        if self.cluster1[1] != self.cluster2[1]:
+            addpoints([self.cluster1[1], self.cluster2[1]], ax, marker='o')
+        elif self.mean != [0,0,0]:
+            addpoints(self.mean, ax, color = 'g')
+        plt.ion()
+        plt.show()
+        return ax
+
+
+def threeTupleToThreeLists(threetuple):
+    '''
+    inputs [[1,1,1],[2,2,2],[3,3,3],[4,4,4]] and return out [[1,2,3,4],[1,2,3,4],[1,2,3,4]]
+    '''
+    Llist = []
+    alist = []
+    blist = []
+    if type(threetuple[0]) == type([]):
+        for curlist in threetuple:
+            Llist.append(curlist[0])
+            alist.append(curlist[1])
+            blist.append(curlist[2])
+        return [Llist, alist, blist]
+    else:
+        return threetuple
+
+def addpoints(listofpoints, axes, color='r', marker=','):
+    '''
+    given a list of points of form [[x1,y1,z1],...,[xn,yn,zn]] and and axes, it will add the points to the axes 
+    '''
+    lablists = threeTupleToThreeLists(listofpoints)
+    x,y,z = lablists[0], lablists[1], lablists[2]
+    axes.scatter(x,y,z, color = color, marker = marker)
 
 def RgbToXYZ(R, G, B):
     '''TEST THIS FUNCTION'''
@@ -170,33 +218,3 @@ def meanstdv(inputList):
     except:
         print "does not compute"
         return "na", "na"
-
-
-def drawscatterplot(x, y, z, color='b', marker='.', xlabel='L', ylabel='a', zlabel='b'):
-    '''
-    untested
-    '''
-    plot = plt.figure
-    plt.close(1)
-    del(plot)
-    plot = plt.figure()
-    ax = plot.add_subplot(111, projection='3d')
-    ax.scatter(x, y, z, c=color, marker=marker)
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    ax.set_zlabel(zlabel)
-    plt.ion()
-    plt.show()
-    return ax
-
-
-def addpoints(listofpoints, axes, color='b', marker=','):
-    '''
-    untested
-    '''
-    x, y, z = [], [], []
-    for xyz in listofpoints:
-        x.append(xyz[0])
-        y.append(xyz[1])
-        z.append(xyz[2])
-    axes.scatter(x, y, z, color=color, marker=marker)

@@ -138,8 +138,11 @@ class Repline(object):
 
 
 def main():
-    r = Repline(startInDirectory='..\src\TEST', row='A15LRH0_0012')
+    r = Repline(startInDirectory='..\src\TEST', row='A15LRH0_0012', kernelcluster=True)
     return r
 
 if __name__ == '__main__':
-    main()
+    r = main()
+    c = r.coblist[0]
+    k = c.kernellist[0]
+    k.showscatterplot()
