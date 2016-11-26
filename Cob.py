@@ -20,9 +20,6 @@ class Cob(object):
     '''
 
     def __init__(self, kernellist, name):
-        '''
-        creates the Cob.
-        '''
         self.name = name
         self.kernellist = kernellist
         self.kernelcenters = []
