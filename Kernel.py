@@ -25,7 +25,7 @@ class Kernel(object):
         -sd                 [lsd,asd,bsd] (standard deviations)
     '''
 
-    def __init__(self, pixellist, name):
+    def __init__(self, pixellist, name, cluster = False):
         self.name = name
         self.pixellist = []
         self.numberofpixels = 0
@@ -33,9 +33,10 @@ class Kernel(object):
         self.mode = [0, 0, 0]
         self.mean = [0, 0, 0]
         self.sd = [0, 0, 0]
-        self.cluster1 = [0, [0, 0, 0]]
-        self.cluster2 = [0, [0, 0, 0]]
-        self.setclusters()
+        if cluster == True:
+            self.cluster1 = [0, [0, 0, 0]]
+            self.cluster2 = [0, [0, 0, 0]]
+            self.setclusters()
 
     def setpixels(self, pixellist):
         '''
@@ -100,9 +101,9 @@ class Kernel(object):
             self.cluster2[1] = default
         else:
             self.cluster1[0] = sizec1
-            self.cluster1[1] = kmeans.cluster_centers_[0]
+            self.cluster1[1] = kmeans.cluster_centers_[0].tolist()
             self.cluster2[0] = sizec2
-            self.cluster2[1] = kmeans.cluster_centers_[1]
+            self.cluster2[1] = kmeans.cluster_centers_[1].tolist()
 
 
 def RgbToXYZ(R, G, B):

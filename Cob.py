@@ -19,14 +19,16 @@ class Cob(object):
     -mean
     '''
 
-    def __init__(self, kernellist, name):
+    def __init__(self, kernellist, name, pixelcluster = True):
         self.name = name
         self.kernellist = kernellist
-        self.kernelcenters = []
-        self.setkernelcenters()
+        self.numkernels = len(self.kernellist)
         self.cluster1 = [0, [0, 0, 0]]
         self.cluster2 = [0, [0, 0, 0]]
-        self.setclusters()
+        if pixelcluster == False:
+            self.kernelcenters = []
+            self.setkernelcenters()
+        self.setclusters(pixelcluster = pixelcluster)
         self.mean = [0,0,0]
         self.setstats()
 
@@ -38,13 +40,21 @@ class Cob(object):
             self.kernelcenters.append(kernel.cluster1[1])
             self.kernelcenters.append(kernel.cluster2[1])
 
-    def setclusters(self):
+    def setclusters(self, pixelcluster = True):
         '''
         calculates kmeans centers for the cob from the centers of the kernels it contains
         '''
-        kmeans = KMeans(n_clusters=2).fit(self.kernelcenters)
-        self.cluster1[1] = kmeans.cluster_centers_[0]
-        self.cluster2[1] = kmeans.cluster_centers_[1]
+        if pixelcluster == False:
+            kmeans = KMeans(n_clusters=2).fit(self.kernelcenters)
+            self.cluster1[1] = kmeans.cluster_centers_[0].tolist()
+            self.cluster2[1] = kmeans.cluster_centers_[1].tolist()
+        else:
+            pixellist = []
+            for kernel in self.kernellist:
+                pixellist.extend(kernel.pixellist)
+            kmeans = KMeans(n_clusters=2).fit(pixellist)
+            self.cluster1[1] = kmeans.cluster_centers_[0].tolist()
+            self.cluster2[1] = kmeans.cluster_centers_[1].tolist()
         sizec1 = 0
         sizec2 = 0
         for label in kmeans.labels_:
