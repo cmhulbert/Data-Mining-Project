@@ -138,7 +138,7 @@ class Repline(object):
 
 
 def main():
-    r = Repline(startInDirectory='..\src\TEST', row='A15LRH0_0012', kernelcluster=False)
+    r = Repline(startInDirectory='..\src\TEST', row='A15LRH0_0012', kernelcluster=True)
     return r
 
 if __name__ == '__main__':
