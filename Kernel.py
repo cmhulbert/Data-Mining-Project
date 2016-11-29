@@ -3,9 +3,11 @@ Created 11/22/2016
 @authort Caleb Hulbert
 '''
 from math import sqrt
+import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, DBSCAN
+from sklearn.preprocessing import StandardScaler
 
 
 class Kernel(object):
@@ -105,6 +107,40 @@ class Kernel(object):
             self.cluster2[0] = sizec2
             self.cluster2[1] = kmeans.cluster_centers_[1].tolist()
 
+    def dbscan(self, eps=1.5, plot=False):
+        X = StandardScaler().fit_transform(self.pixellist)
+        db = DBSCAN(eps=eps).fit(self.pixellist)
+        core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
+        core_samples_mask[db.core_sample_indices_] = True
+        labels = db.labels_
+        n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+        print('Estimated number of clusters: %d' % n_clusters_)
+        if plot == True:
+            graph = plt.figure()
+            ax = graph.add_subplot(111, projection='3d')
+            unique_labels = set(labels)
+            colors = plt.cm.get_cmap('Spectral')(
+                np.linspace(0, 1, len(unique_labels)))
+            for k, col in zip(unique_labels, colors):
+                if k == -1:
+                    col = 'k'
+                class_member_mask = (labels == k)
+                xy = X[class_member_mask & core_samples_mask]
+                ax.scatter(xy[:, 0], xy[:, 1], xy[:, 2], c=col)
+                # plt.plot(xy[:, 0], xy[:, 1], 'o', markerfacecolor=col,
+                #          markeredgecolor='k', markersize=14)
+
+                xy = X[class_member_mask & ~core_samples_mask]
+                ax.scatter(xy[:, 0], xy[:, 1], xy[:, 2], c=col, marker='.')
+                # plt.plot(xy[:, 0], xy[:, 1], 'o', markerfacecolor=col,
+                #          markeredgecolor='k', markersize=6)
+            ax.set_xlabel('L')
+            ax.set_ylabel('a')
+            ax.set_zlabel('b')
+            plt.title('Estimated number of clusters: %d' % n_clusters_)
+            plt.ion()
+            plt.show()
+
     def showscatterplot(self):
         '''
         creates a 3d scatter plot with the points as the [L,a,b] values of the pixels
@@ -124,7 +160,7 @@ class Kernel(object):
         if self.cluster1[1] != self.cluster2[1]:
             addpoints([self.cluster1[1], self.cluster2[1]], ax, marker='o')
         elif self.mean != [0, 0, 0]:
-            addpoints(self.mean, ax, color='g', marker = 'o')
+            addpoints(self.mean, ax, color='g', marker='o')
         plt.ion()
         plt.show()
         return ax
