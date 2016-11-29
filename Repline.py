@@ -137,12 +137,9 @@ class Repline(object):
                      b / float(numcobs)]
 
 
-def main():
+def test():
     r = Repline(startInDirectory='..\src\TEST', row='A15LRH0_0012', kernelcluster=True)
     return r
 
 if __name__ == '__main__':
-    r = main()
-    c = r.coblist[0]
-    k = c.kernellist[0]
-    k.showscatterplot()
+    r = test()
