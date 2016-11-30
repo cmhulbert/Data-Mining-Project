@@ -22,20 +22,22 @@ class Cob(object):
     -mean
     '''
 
-    def __init__(self, kernellist, name, pixelcluster=True):
+    def __init__(self, kernellist, name, pixelcluster=True, stats = False):
         self.name = name
         self.kernellist = kernellist
         self.numkernels = len(self.kernellist)
         self.cluster1 = [0, [0, 0, 0]]
         self.cluster2 = [0, [0, 0, 0]]
-        self.mode = 'pixels'
+        self.type = 'pixels'
         if pixelcluster == False:
-            self.mode = 'kernels'
+            self.type = 'kernels'
             self.kernelcenters = []
             self.setkernelcenters()
         self.setclusters(pixelcluster=pixelcluster)
         self.mean = [0, 0, 0]
-        self.setstats()
+        if stats == True:
+            self.setstats()
+        
 
     def setkernelcenters(self):
         '''

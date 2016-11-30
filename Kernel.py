@@ -27,18 +27,26 @@ class Kernel(object):
         -sd                 [lsd,asd,bsd] (standard deviations)
     '''
 
-    def __init__(self, pixellist, name, cluster=False):
+    def __init__(self, pixellist, name, cluster=True):
         self.name = name
         self.pixellist = []
         self.numberofpixels = 0
-        self.setpixels(pixellist)
         self.mode = [0, 0, 0]
         self.mean = [0, 0, 0]
         self.sd = [0, 0, 0]
+        self.setpixels(pixellist)
+        self.type = 'pixels'
         if cluster == True:
+            self.type = "kernels"
             self.cluster1 = [0, [0, 0, 0]]
             self.cluster2 = [0, [0, 0, 0]]
             self.setclusters()
+            self.mode = [0, 0, 0]
+            self.mean = [0, 0, 0]
+            self.sd = [0, 0, 0]
+        else: 
+            self.setstats()
+            
 
     def setpixels(self, pixellist):
         '''
@@ -114,8 +122,8 @@ class Kernel(object):
         core_samples_mask[db.core_sample_indices_] = True
         labels = db.labels_
         n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
-        print('Estimated number of clusters: %d' % n_clusters_)
-        if plot == True:
+        print 'Estimated number of clusters: %d' % n_clusters_
+        if plot is True:
             graph = plt.figure()
             ax = graph.add_subplot(111, projection='3d')
             unique_labels = set(labels)
@@ -127,13 +135,8 @@ class Kernel(object):
                 class_member_mask = (labels == k)
                 xy = X[class_member_mask & core_samples_mask]
                 ax.scatter(xy[:, 0], xy[:, 1], xy[:, 2], c=col)
-                # plt.plot(xy[:, 0], xy[:, 1], 'o', markerfacecolor=col,
-                #          markeredgecolor='k', markersize=14)
-
                 xy = X[class_member_mask & ~core_samples_mask]
                 ax.scatter(xy[:, 0], xy[:, 1], xy[:, 2], c=col, marker='.')
-                # plt.plot(xy[:, 0], xy[:, 1], 'o', markerfacecolor=col,
-                #          markeredgecolor='k', markersize=6)
             ax.set_xlabel('L')
             ax.set_ylabel('a')
             ax.set_zlabel('b')
