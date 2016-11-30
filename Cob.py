@@ -4,7 +4,9 @@ Created on Sep 14, 2016
 @author: Caleb Hulbert
 '''
 import Kernel
-from sklearn.cluster import KMeans
+import numpy as np
+from sklearn.cluster import KMeans, DBSCAN
+from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -22,22 +24,27 @@ class Cob(object):
     -mean
     '''
 
-    def __init__(self, kernellist, name, pixelcluster=True, stats = False):
+    def __init__(self, kernellist, name, clustertype="kmeans", pixelcluster=True, stats=False):
         self.name = name
+        self.clustertype = clustertype
         self.kernellist = kernellist
         self.numkernels = len(self.kernellist)
-        self.cluster1 = [0, [0, 0, 0]]
-        self.cluster2 = [0, [0, 0, 0]]
         self.type = 'pixels'
-        if pixelcluster == False:
-            self.type = 'kernels'
-            self.kernelcenters = []
-            self.setkernelcenters()
-        self.setclusters(pixelcluster=pixelcluster)
         self.mean = [0, 0, 0]
         if stats == True:
             self.setstats()
-        
+        if pixelcluster == False:
+            self.type = 'kernels'
+            self.cluster1 = [0, [0, 0, 0]]
+            self.cluster2 = [0, [0, 0, 0]]
+            self.kernelcenters = []
+            self.setkernelcenters()
+        elif self.clustertype == "kmeans":
+            self.setclusters(pixelcluster=pixelcluster)
+            self.mean = [0, 0, 0]
+        elif self.clustertype == "dbscan":
+            self.clusters = []
+            self.dbscan()
 
     def setkernelcenters(self):
         '''
@@ -51,17 +58,13 @@ class Cob(object):
         '''
         calculates kmeans centers for the cob from the centers of the kernels it contains
         '''
-        if pixelcluster == False:
-            kmeans = KMeans(n_clusters=2).fit(self.kernelcenters)
-            self.cluster1[1] = kmeans.cluster_centers_[0].tolist()
-            self.cluster2[1] = kmeans.cluster_centers_[1].tolist()
-        else:
-            pixellist = []
-            for kernel in self.kernellist:
-                pixellist.extend(kernel.pixellist)
-            kmeans = KMeans(n_clusters=2).fit(pixellist)
-            self.cluster1[1] = kmeans.cluster_centers_[0].tolist()
-            self.cluster2[1] = kmeans.cluster_centers_[1].tolist()
+
+        pixellist = []
+        for kernel in self.kernellist:
+            pixellist.extend(kernel.pixellist)
+        kmeans = KMeans(n_clusters=2).fit(pixellist)
+        self.cluster1[1] = kmeans.cluster_centers_[0].tolist()
+        self.cluster2[1] = kmeans.cluster_centers_[1].tolist()
         sizec1 = 0
         sizec2 = 0
         for label in kmeans.labels_:
@@ -89,6 +92,51 @@ class Cob(object):
         self.mean[1] = a / float(numkernels)
         self.mean[2] = b / float(numkernels)
 
+    def dbscan(self, eps=.5, plot=False):
+        pixellist = []
+        for kernel in self.kernellist:
+            pixellist.extend(kernel.pixellist)
+        X = StandardScaler().fit_transform(pixellist)
+        density = eps
+        db = DBSCAN(eps=density).fit(pixellist)
+        core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
+        core_samples_mask[db.core_sample_indices_] = True
+        labels = db.labels_
+        n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+        print 'Estimated number of clusters: %d' % n_clusters_
+        unique_labels = set(labels)
+        colors = plt.cm.get_cmap('Spectral')(
+            np.linspace(0, 1, len(unique_labels)))
+        for k, col in zip(unique_labels, colors):
+            if k == -1:
+                col = 'k'
+            class_member_mask = (labels == k)
+            xyz = X[class_member_mask & core_samples_mask]
+            llist, alist, blist = xyz[:, 0], xyz[:, 1], xyz[:, 2]
+            if len(llist) > 0:
+                lmean = llist.mean()
+                amean = alist.mean()
+                bmean = blist.mean()
+                self.clusters.append([len(llist),[lmean,amean,bmean]])
+        if plot is True:
+            graph = plt.figure()
+            ax = graph.add_subplot(111, projection='3d')
+            for k, col in zip(unique_labels, colors):
+                if k == -1:
+                    col = 'k'
+                class_member_mask = (labels == k)
+                xyz = X[class_member_mask & core_samples_mask]
+                ax.scatter(xyz[:, 0], xyz[:, 1], xyz[:, 2], c=col)
+                xyz = X[class_member_mask & ~core_samples_mask]
+                ax.scatter(xyz[:, 0], xyz[:, 1], xyz[:, 2], c=col, marker='.')
+            ax.set_xlabel('L')
+            ax.set_ylabel('a')
+            ax.set_zlabel('b')
+            plt.title('Estimated number of clusters: %d' % n_clusters_)
+            plt.ion()
+            plt.show()
+        return db
+
     def showscatterplot(self):
         '''
         creates a 3d scatter plot whose points are either pixels from all the kernels in this cob,
@@ -115,9 +163,10 @@ class Cob(object):
         axes.set_ylabel('a')
         axes.set_zlabel('b')
         if self.cluster1[1] != self.cluster2[1]:
-            Kernel.addpoints([self.cluster1[1], self.cluster2[1]], axes, marker='o')
+            Kernel.addpoints(
+                [self.cluster1[1], self.cluster2[1]], axes, marker='o')
         elif self.mean != [0, 0, 0]:
-            Kernel.addpoints(self.mean, axes, color='g', marker = 'o')
+            Kernel.addpoints(self.mean, axes, color='g', marker='o')
         plt.ion()
         plt.show()
         return axes

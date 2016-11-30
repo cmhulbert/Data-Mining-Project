@@ -16,6 +16,7 @@ import Kernel
 class Repline(object):
     '''
     contains a list of Cobs, along with some calculated statistics.
+    clusterType options = ["kmeans", "dbscan"]
 
     -coblist           list of Cobs
     -directory      str(directory that the cobs where located in)
@@ -25,18 +26,20 @@ class Repline(object):
     -mean           [Lmean,amean,bmean]
     '''
 
-    def __init__(self, startInDirectory='', row='', kernelcluster=False, stats=False):
+    def __init__(self, startInDirectory='', row='', clustertype="kmeans", stats=False):
         Tk().withdraw()
         self.directory = ''
         self.name = ''
+        self.clustertype = clustertype
         self.setdirectoryandrow(startInDirectory, row)
         self.coblist = []
         self.cobcenters = []
-        self.createcobs(kernelcluster=kernelcluster, stats=stats)
+        self.createcobs(clustertype=clustertype, stats=stats)
         self.setcobcenters()
         self.cluster1 = [0, [0, 0, 0]]
         self.cluster2 = [0, [0, 0, 0]]
-        self.setclusters()
+        if self.clustertype != "dbscan":
+            self.setclusters()
         self.mean = [0, 0, 0]
         if stats == True:
             self.setstats()
@@ -56,7 +59,7 @@ class Repline(object):
         else:
             self.name = row
 
-    def createcobs(self, kernelcluster=False, stats=False):
+    def createcobs(self, clustertype="kmeans", stats=False):
         '''
         looks at all the files in self.directory and finds and with the same base name as self.name.
         each file is turned into a cob object, and add to self.cobs
@@ -77,7 +80,7 @@ class Repline(object):
                                 pass
                             elif int(line[1]) != currentkernel and line[4] != '':
                                 kernellist.append(Kernel.Kernel(
-                                    listofpixels, name=currentkernel, cluster=kernelcluster))
+                                    listofpixels, name=currentkernel, clustertype="none"))
                                 listofpixels = []
                                 currentkernel = int(line[1])
                                 currentpixel = [int(line[2]), int(
@@ -87,20 +90,24 @@ class Repline(object):
                                 currentpixel = [int(line[2]), int(
                                     line[3]), int(line[4])]
                                 listofpixels.append(currentpixel)
-                        except Exception,e:
+                        except Exception, e:
                             print str(e)
                             IndexError
-                currentcob = Cob.Cob(kernellist, basename,
-                                     pixelcluster=not kernelcluster, stats=stats)
+                currentcob = Cob.Cob(kernellist, basename, clustertype=clustertype, stats=stats)
                 self.coblist.append(currentcob)
 
     def setcobcenters(self):
         '''
         create a list of all the centers calculated for the cobs this repline contains
         '''
-        for cob in self.coblist:
-            self.cobcenters.append(cob.cluster1[1])
-            self.cobcenters.append(cob.cluster2[1])
+        if self.clustertype == "dbscan":
+            for cob in self.coblist:
+                for cluster in cob.clusters:
+                    self.cobcenters.append(cluster[1])
+        else:
+            for cob in self.coblist:
+                self.cobcenters.append(cob.cluster1[1])
+                self.cobcenters.append(cob.cluster2[1])
 
     def setclusters(self):
         '''
@@ -145,7 +152,7 @@ class Repline(object):
 
 def test():
     r = Repline(startInDirectory='..\src\TEST',
-                row='A15LRH0_0012', kernelcluster=True)
+                row='A15LRH0_0012', clustertype="dbscan")
     return r
 
 if __name__ == '__main__':

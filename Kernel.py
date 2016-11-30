@@ -16,6 +16,8 @@ class Kernel(object):
     form (l,a,b) where l,a,b are floats which make up a single hunter Lab color.
     Also contains statistical measure of the pixel list.
 
+    clustertype options = ["kmeans","dbscan","stats", "none"]
+
      Attributes:
         -name               string
         -pixellist          list of [l,a,b] lists
@@ -27,26 +29,28 @@ class Kernel(object):
         -sd                 [lsd,asd,bsd] (standard deviations)
     '''
 
-    def __init__(self, pixellist, name, cluster=True):
+    def __init__(self, pixellist, name, clustertype="none"):
         self.name = name
+        self.clustertype = clustertype
         self.pixellist = []
         self.numberofpixels = 0
         self.mode = [0, 0, 0]
         self.mean = [0, 0, 0]
         self.sd = [0, 0, 0]
         self.setpixels(pixellist)
-        self.type = 'pixels'
-        if cluster == True:
-            self.type = "kernels"
+        if self.clustertype == "kmeans":
             self.cluster1 = [0, [0, 0, 0]]
             self.cluster2 = [0, [0, 0, 0]]
             self.setclusters()
             self.mode = [0, 0, 0]
             self.mean = [0, 0, 0]
             self.sd = [0, 0, 0]
-        else: 
+        if self.clustertype == "stats":
             self.setstats()
-            
+        if self.clustertype == "dbscan":
+            self.db = self.dbscan()
+        if self.clustertype == "none":
+            pass
 
     def setpixels(self, pixellist):
         '''
@@ -136,13 +140,14 @@ class Kernel(object):
                 xy = X[class_member_mask & core_samples_mask]
                 ax.scatter(xy[:, 0], xy[:, 1], xy[:, 2], c=col)
                 xy = X[class_member_mask & ~core_samples_mask]
-                ax.scatter(xy[:, 0], xy[:, 1], xy[:, 2], c=col, marker='.')
+                ax.scatter(xy[:, 0], xy[:, 1], xy[:, 2], c=col, marker=',')
             ax.set_xlabel('L')
             ax.set_ylabel('a')
             ax.set_zlabel('b')
             plt.title('Estimated number of clusters: %d' % n_clusters_)
             plt.ion()
             plt.show()
+        return db
 
     def showscatterplot(self):
         '''
@@ -257,6 +262,7 @@ def meanstdv(inputList):
             SDsum += pow((value - mean), 2)
         stddev = sqrt(SDsum / Listlen)
         return [float(mean), float(stddev)]
-    except:
-        print "does not compute"
+    except Exception, e:
+        print str(e)
+        print " In Kernel.meanstdv ; does not compute"
         return "na", "na"
