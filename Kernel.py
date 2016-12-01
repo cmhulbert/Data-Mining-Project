@@ -118,6 +118,7 @@ class Kernel(object):
             self.cluster.append([sizec2, kmeans.cluster_centers_[1].tolist()])
 
     def dbscan(self, eps=1.5, plot=False):
+        self.clusters = []
         X = np.array(self.pixellist)
         db = DBSCAN(eps=eps).fit(X)
         core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
@@ -134,7 +135,6 @@ class Kernel(object):
                 lmean = llist.mean()
                 amean = alist.mean()
                 bmean = blist.mean()
-                self.clusters = []
                 self.clusters.append([len(llist), [lmean, amean, bmean]])
                 r, g, b = HunterLabToRGB(lmean, amean, bmean)
                 colors.append([r / 255.0, g / 255.0, b / 255.0])
