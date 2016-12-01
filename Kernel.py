@@ -313,17 +313,17 @@ def XYZToRGB(X, Y, Z):
     return R, G, B
 
 
-def HunterLabToRGB(L, a, b, normalized = False):
+def HunterLabToRGB(L, a, b, normalized=False):
     '''
     TESTED
     '''
     x, y, z = HunterLabToXYZ(L, a, b)
-    R,G,B = XYZToRGB(x, y, z)
+    R, G, B = XYZToRGB(x, y, z)
 
     if normalized == True:
-        R = R/255.0
-        G = G/255.0
-        B = B/255.0
+        R = R / 255.0
+        G = G / 255.0
+        B = B / 255.0
 
     return R, G, B
 

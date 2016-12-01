@@ -3,11 +3,13 @@ Created on Nov 25, 2016
 
 @author: Caleb Hulbert
 '''
-import os
 import csv
+import os
 import tkFileDialog
 from Tkinter import Tk
-from sklearn.cluster import KMeans
+
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 import Cob
 import Kernel
@@ -21,8 +23,7 @@ class Repline(object):
     -coblist           list of Cobs
     -directory      str(directory that the cobs where located in)
     -name           str(name of the rep line)
-    -cluster1       [size, [L,a,b]]
-    -cluster2       [size, [L,a,b]]
+    -cluster        list of cluster of form [size, [mean of points]]
     -mean           [Lmean,amean,bmean]
     '''
 
@@ -36,10 +37,11 @@ class Repline(object):
         self.cobcenters = []
         self.createcobs(clustertype=clustertype, stats=stats)
         self.setcobcenters()
-        self.cluster1 = [0, [0, 0, 0]]
-        self.cluster2 = [0, [0, 0, 0]]
-        if self.clustertype != "dbscan":
-            self.setclusters()
+        self.clusters = []
+        if self.clustertype == "kmeans":
+            self.kmeans()
+        elif self.clustertype == "dbscan":
+            self.dbscan()
         self.mean = [0, 0, 0]
         if stats == True:
             self.setstats()
@@ -80,7 +82,7 @@ class Repline(object):
                                 pass
                             elif int(line[1]) != currentkernel and line[4] != '':
                                 kernellist.append(Kernel.Kernel(
-                                    listofpixels, name=currentkernel, clustertype="none"))
+                                    listofpixels, name=currentkernel, clustertype="dbscan", stats=stats))
                                 listofpixels = []
                                 currentkernel = int(line[1])
                                 currentpixel = [int(line[2]), int(
@@ -93,30 +95,29 @@ class Repline(object):
                         except Exception, e:
                             print str(e)
                             IndexError
-                currentcob = Cob.Cob(kernellist, basename, clustertype=clustertype, stats=stats)
+                currentcob = Cob.Cob(
+                    kernellist, basename, pixelcluster=False, clustertype=clustertype, stats=stats)
                 self.coblist.append(currentcob)
 
     def setcobcenters(self):
         '''
         create a list of all the centers calculated for the cobs this repline contains
         '''
-        if self.clustertype == "dbscan":
-            for cob in self.coblist:
-                for cluster in cob.clusters:
-                    self.cobcenters.append(cluster[1])
-        else:
-            for cob in self.coblist:
-                self.cobcenters.append(cob.cluster1[1])
-                self.cobcenters.append(cob.cluster2[1])
+        for cob in self.coblist:
+            for cluster in cob.clusters:
+                self.cobcenters.append(cluster[1])
 
-    def setclusters(self):
+    def kmeans(self):
         '''
         calculates kmeans centers for the repline from the centers of the cobs it contains
         '''
         if len(self.coblist) > 1:
-            kmeans = KMeans(n_clusters=2).fit(self.cobcenters)
-            self.cluster1[1] = kmeans.cluster_centers_[0].tolist()
-            self.cluster2[1] = kmeans.cluster_centers_[1].tolist()
+            for cob in self.coblist:
+                for cluster in cob.clusters:
+                    self.cobcenters.append(cluster[1])
+            kmeans = Kernel.KMeans(n_clusters=2).fit(self.cobcenters)
+            meanc1 = kmeans.cluster_centers_[0].tolist()
+            meanc2 = kmeans.cluster_centers_[1].tolist()
             sizec1 = 0
             sizec2 = 0
             for label in kmeans.labels_:
@@ -124,13 +125,66 @@ class Repline(object):
                     sizec1 += 1
                 elif label == 1:
                     sizec2 += 1
-            self.cluster1[0] = sizec1
-            self.cluster2[0] = sizec2
+            self.clusters.append([sizec1, meanc1])
+            self.clusters.append([sizec2, meanc2])
+
         else:
-            self.cluster1[0] = self.coblist[0].cluster1[0]
-            self.cluster2[0] = self.coblist[0].cluster2[0]
-            self.cluster1[1] = self.coblist[0].cluster1[1]
-            self.cluster2[1] = self.coblist[0].cluster2[1]
+            self.clusters = self.coblist[0].clusters
+
+    def dbscan(self, eps=.5, plot=False):
+        if len(self.coblist) > 1:
+            pixlist = []
+            totalnumkernels = 0
+            for cob in self.coblist:
+                for kernel in cob.kernellist:
+                    pixlist.extend(kernel.pixellist)
+                    totalnumkernels += 1
+            X = Kernel.np.array(pixlist)
+            density = eps
+            numberofpixels = len(pixlist)
+            db = Kernel.DBSCAN(eps=density).fit(X)
+            core_samples_mask = Kernel.np.zeros_like(db.labels_, dtype=bool)
+            core_samples_mask[db.core_sample_indices_] = True
+            labels = db.labels_
+            n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+            unique_labels = set(labels)
+            colors = []
+            for k in unique_labels:
+                class_member_mask = (labels == k)
+                xyz = X[class_member_mask & core_samples_mask]
+                llist, alist, blist = xyz[:, 0], xyz[:, 1], xyz[:, 2]
+                if len(llist) >= numberofpixels / 100:
+                    lmean = llist.mean()
+                    amean = alist.mean()
+                    bmean = blist.mean()
+                    self.clusters.append([size, [lmean, amean, bmean]])
+                    r, g, b = Kernel.HunterLabToRGB(lmean, amean, bmean)
+                    colors.append([r / 255.0, g / 255.0, b / 255.0])
+                else:
+                    colors.append('k')
+            if plot is True:
+                graph = plt.figure()
+                ax = graph.add_subplot(111, projection='3d')
+                for k, col in zip(unique_labels, colors):
+                    if k == -1:
+                        col = 'k'
+                    class_member_mask = (labels == k)
+                    xyz = X[class_member_mask & core_samples_mask]
+                    if len(xyz[:, 0]) >= numberofpixels / 100:
+                        print len(xyz[:, 0])
+                        ax.scatter(xyz[:, 0], xyz[:, 1], xyz[:, 2], c=col)
+                        xyz = X[class_member_mask & ~core_samples_mask]
+                        ax.scatter(xyz[:, 0], xyz[:, 1], xyz[
+                            :, 2], c=col, marker='.')
+                ax.set_xlabel('L')
+                ax.set_ylabel('a')
+                ax.set_zlabel('b')
+                plt.title('Estimated number of clusters: %d' % n_clusters_)
+                plt.ion()
+                plt.show()
+            return db
+        elif len(self.coblist) == 1:
+            self.clusters = self.coblist[0].clusters
 
     def setstats(self):
         '''
@@ -150,11 +204,14 @@ class Repline(object):
                      b / float(numcobs)]
 
 
-def test():
-    r = Repline(startInDirectory='..\src\TEST',
-                row='A15LRH0_0012', clustertype="dbscan")
+def test(clustertype="dbscan", stats=False):
+    # r = Repline(startInDirectory='..\src\TEST',
+    #             row='A15LRH0_0012', clustertype=clustertype, stats=stats)
+    r = Repline(startInDirectory='C:/Users/cmhul/Google Drive/College_/Corn_Color_Phenotyping/Hybrid_Phenotyping/Kernel CSVs',
+                clustertype="kmeans", row='A15LRH0_0019')
     return r
 
 if __name__ == '__main__':
+    # r = test("dbscan")
     r = test()
     pass
