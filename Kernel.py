@@ -3,11 +3,12 @@ Created 11/22/2016
 @authort Caleb Hulbert
 '''
 from math import sqrt
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+
 from sklearn.cluster import KMeans, DBSCAN
-from sklearn.preprocessing import StandardScaler
+
+import matplotlib.pyplot as plt
+import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
 
 
 class Kernel(object):
@@ -22,14 +23,13 @@ class Kernel(object):
         -name               string
         -pixellist          list of [l,a,b] lists
         -numberofpixels     integer
-        -cluster1           [pixelsPercluster, Center]
-        -cluster2           [pixelsPercluster, Center]
+        -clusters           list of clusters of form [size of cluster, cluster mean]
         -mean               [l,a,b]
         -mode               [l,a,b]
         -sd                 [lsd,asd,bsd] (standard deviations)
     '''
 
-    def __init__(self, pixellist, name, clustertype="none"):
+    def __init__(self, pixellist, name, clustertype="none", stats=False):
         self.name = name
         self.clustertype = clustertype
         self.pixellist = []
@@ -37,20 +37,20 @@ class Kernel(object):
         self.mode = [0, 0, 0]
         self.mean = [0, 0, 0]
         self.sd = [0, 0, 0]
+        self.clusters = []
         self.setpixels(pixellist)
         if self.clustertype == "kmeans":
-            self.cluster1 = [0, [0, 0, 0]]
-            self.cluster2 = [0, [0, 0, 0]]
-            self.setclusters()
+            self.clusters = []
+            self.kmeans()
             self.mode = [0, 0, 0]
             self.mean = [0, 0, 0]
             self.sd = [0, 0, 0]
-        if self.clustertype == "stats":
-            self.setstats()
         if self.clustertype == "dbscan":
             self.db = self.dbscan()
         if self.clustertype == "none":
             pass
+        if stats == True:
+            self.setstats()
 
     def setpixels(self, pixellist):
         '''
@@ -87,7 +87,7 @@ class Kernel(object):
         self.sd[1] = meanstdv(alist)[1]
         self.sd[2] = meanstdv(blist)[1]
 
-    def setclusters(self, default='mode'):
+    def kmeans(self, default='mode'):
         '''
         calculates clusets centers based on a k-means algorithm with k=2.
         also determines the size of the clusters, and depending on how balanced each cluster is,
@@ -111,36 +111,49 @@ class Kernel(object):
                 default = self.mode
             elif default == 'mean':
                 default = self.mean
-            self.cluster1[1] = default
-            self.cluster2[1] = default
+            self.clusters.append([0, default])
+            self.clusters.append([0, default])
         else:
-            self.cluster1[0] = sizec1
-            self.cluster1[1] = kmeans.cluster_centers_[0].tolist()
-            self.cluster2[0] = sizec2
-            self.cluster2[1] = kmeans.cluster_centers_[1].tolist()
+            self.cluster.append([sizec1, kmeans.cluster_centers_[0].tolist()])
+            self.cluster.append([sizec2, kmeans.cluster_centers_[1].tolist()])
 
     def dbscan(self, eps=1.5, plot=False):
-        X = StandardScaler().fit_transform(self.pixellist)
-        db = DBSCAN(eps=eps).fit(self.pixellist)
+        X = np.array(self.pixellist)
+        db = DBSCAN(eps=eps).fit(X)
         core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
         core_samples_mask[db.core_sample_indices_] = True
         labels = db.labels_
         n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
-        print 'Estimated number of clusters: %d' % n_clusters_
+        unique_labels = set(labels)
+        colors = []
+        for k in unique_labels:
+            class_member_mask = (labels == k)
+            xyz = X[class_member_mask & core_samples_mask]
+            llist, alist, blist = xyz[:, 0], xyz[:, 1], xyz[:, 2]
+            if len(llist) > self.numberofpixels / 100:
+                lmean = llist.mean()
+                amean = alist.mean()
+                bmean = blist.mean()
+                self.clusters = []
+                self.clusters.append([len(llist), [lmean, amean, bmean]])
+                r, g, b = HunterLabToRGB(lmean, amean, bmean)
+                colors.append([r / 255.0, g / 255.0, b / 255.0])
+            else:
+                colors.append('k')
         if plot is True:
             graph = plt.figure()
             ax = graph.add_subplot(111, projection='3d')
-            unique_labels = set(labels)
-            colors = plt.cm.get_cmap('Spectral')(
-                np.linspace(0, 1, len(unique_labels)))
             for k, col in zip(unique_labels, colors):
                 if k == -1:
                     col = 'k'
                 class_member_mask = (labels == k)
-                xy = X[class_member_mask & core_samples_mask]
-                ax.scatter(xy[:, 0], xy[:, 1], xy[:, 2], c=col)
-                xy = X[class_member_mask & ~core_samples_mask]
-                ax.scatter(xy[:, 0], xy[:, 1], xy[:, 2], c=col, marker=',')
+                xyz = X[class_member_mask & core_samples_mask]
+                if len(xyz[:, 0]) >= self.numberofpixels / 100:
+                    print len(xyz[:, 0])
+                    ax.scatter(xyz[:, 0], xyz[:, 1], xyz[:, 2], c=col)
+                    xyz = X[class_member_mask & ~core_samples_mask]
+                    ax.scatter(xyz[:, 0], xyz[:, 1], xyz[
+                        :, 2], c=col, marker='.')
             ax.set_xlabel('L')
             ax.set_ylabel('a')
             ax.set_zlabel('b')
@@ -165,8 +178,9 @@ class Kernel(object):
         ax.set_xlabel('L')
         ax.set_ylabel('a')
         ax.set_zlabel('b')
-        if self.cluster1[1] != self.cluster2[1]:
-            addpoints([self.cluster1[1], self.cluster2[1]], ax, marker='o')
+        if self.clusters[0][1] != self.clusters[1][1]:
+            addpoints([self.clusters[0][1], self.clusters[1][1]],
+                      ax, marker='o')
         elif self.mean != [0, 0, 0]:
             addpoints(self.mean, ax, color='g', marker='o')
         plt.ion()
@@ -250,6 +264,68 @@ def RGBtoHunterLab(r, g, b):
         xyz = RgbToXYZ(r, g, b)
         HLab = XyzToHunterLab(xyz["X"], xyz["Y"], xyz["Z"])
         return HLab
+
+
+def HunterLabToXYZ(L, a, b):
+    '''
+    TESTED
+    '''
+    tempY = L / 10.0
+    tempX = (a / 17.5) * (L / 10.0)
+    tempZ = (b / 7.0) * (L / 10.0)
+
+    Y = tempY ** 2
+    X = (tempX + Y) / 1.02
+    Z = (-1) * (tempZ - Y) / 0.847
+
+    return X, Y, Z
+
+
+def XYZToRGB(X, Y, Z):
+    '''
+    TESTED
+    '''
+    tempX = X / 100.0
+    tempY = Y / 100.0
+    tempZ = Z / 100.0
+
+    tempR = (tempX * 3.2406) + (tempY * -1.5372) + (tempZ * -0.4986)
+    tempG = (tempX * -0.9689) + (tempY * 1.8758) + (tempZ * 0.0415)
+    tempB = (tempX * 0.0557) + (tempY * -0.2040) + (tempZ * 1.0570)
+
+    if (tempR > 0.0031308):
+        tempR = 1.055 * (tempR ** (1 / 2.4)) - 0.055
+    else:
+        tempR = 12.92 * tempR
+    if (tempG > 0.0031308):
+        tempG = 1.055 * (tempG ** (1 / 2.4)) - 0.055
+    else:
+        tempG = 12.92 * tempG
+    if (tempB > 0.0031308):
+        tempB = 1.055 * (tempB ** (1 / 2.4)) - 0.055
+    else:
+        tempB = 12.92 * tempB
+
+    R = tempR * 255
+    G = tempG * 255
+    B = tempB * 255
+
+    return R, G, B
+
+
+def HunterLabToRGB(L, a, b, normalized = False):
+    '''
+    TESTED
+    '''
+    x, y, z = HunterLabToXYZ(L, a, b)
+    R,G,B = XYZToRGB(x, y, z)
+
+    if normalized == True:
+        R = R/255.0
+        G = G/255.0
+        B = B/255.0
+
+    return R, G, B
 
 
 def meanstdv(inputList):
