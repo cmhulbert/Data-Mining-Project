@@ -203,12 +203,36 @@ class Repline(object):
                      a / float(numcobs),
                      b / float(numcobs)]
 
+    def checkdistance(self):
+        c1 = self.clusters[0]
+        c2 = self.clusters[1]
+        dist = Kernel.clusterdistance(c1[1], c2[1])
+        if dist < 7.5:
+            L = (c1[0] * c1[1][0] + c2[0] * c2[1][0]) / (c1[0] + c2[0])
+            a = (c1[0] * c1[1][1] + c2[0] * c2[1][1]) / (c1[0] + c2[0])
+            b = (c1[0] * c1[1][2] + c2[0] * c2[1][2]) / (c1[0] + c2[0])
+            self.cluster = [[c1[0] + c2[0]], [L, a, b]]
+            self.segmenting = True
+        else:
+            self.cluster = [0,[0,0,0]]
+        return dist
 
-def test(clustertype="dbscan", stats=False):
+
+def test(clustertype="dbscan", stats=False, rownum = 23):
     # r = Repline(startInDirectory='..\src\TEST',
     #             row='A15LRH0_0012', clustertype=clustertype, stats=stats)
+    if rownum > 99:
+        row = "A15LRH0_0" + str(rownum)
+    elif rownum > 9:
+        row = "A15LRH0_00" + str(rownum)
+    elif rownum > -1:
+        row = "A15LRH0_000" + str(rownum)
+    from time import clock
+    c1 = clock()
     r = Repline(startInDirectory='C:/Users/cmhul/Google Drive/College_/Corn_Color_Phenotyping/Hybrid_Phenotyping/Kernel CSVs',
-                clustertype="kmeans", row='A15LRH0_0019')
+                clustertype="kmeans", row=row)
+    print clock() - c1
+    r.checkdistance()
     return r
 
 if __name__ == '__main__':

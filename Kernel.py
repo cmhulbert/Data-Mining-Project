@@ -342,3 +342,13 @@ def meanstdv(inputList):
         print str(e)
         print " In Kernel.meanstdv ; does not compute"
         return "na", "na"
+
+def clusterdistance(cluster1, cluster2):
+    d1 = cluster1[0] - cluster2[0]
+    d2 = cluster1[1] - cluster2[1]
+    d3 = cluster1[2] - cluster2[2]
+    sum = 0
+    for distdiff in [d1,d2,d3]:
+        distdiff = distdiff**2
+        sum += distdiff
+    return sqrt(sum)
