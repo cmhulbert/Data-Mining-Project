@@ -127,7 +127,6 @@ class Repline(object):
                     sizec2 += 1
             self.clusters.append([sizec1, meanc1])
             self.clusters.append([sizec2, meanc2])
-
         else:
             self.clusters = self.coblist[0].clusters
 
@@ -212,10 +211,16 @@ class Repline(object):
             a = (c1[0] * c1[1][1] + c2[0] * c2[1][1]) / (c1[0] + c2[0])
             b = (c1[0] * c1[1][2] + c2[0] * c2[1][2]) / (c1[0] + c2[0])
             self.cluster = [[c1[0] + c2[0]], [L, a, b]]
-            self.segmenting = True
+            self.segregating = False
         else:
             self.cluster = [0,[0,0,0]]
+            self.segregating = True
         return dist
+
+    def showscatterplot(self, s=20):
+        if len(self.coblist) == 1:
+            self.coblist[0].showscatterplot(s)
+        
 
 
 def test(clustertype="dbscan", stats=False, rownum = 23):

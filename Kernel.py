@@ -205,14 +205,14 @@ def threeTupleToThreeLists(threetuple):
         return threetuple
 
 
-def addpoints(listofpoints, axes, color='r', marker=','):
+def addpoints(listofpoints, axes, color='r', marker=',', s=20):
     '''
     given a list of points of form [[x1,y1,z1],...,[xn,yn,zn]] and axes,
     it will add the points to the axes.
     '''
     lablists = threeTupleToThreeLists(listofpoints)
     x, y, z = lablists[0], lablists[1], lablists[2]
-    axes.scatter(x, y, z, color=color, marker=marker)
+    axes.scatter(x, y, z, color=color, marker=marker, s=s)
 
 
 def RgbToXYZ(R, G, B):
@@ -343,12 +343,13 @@ def meanstdv(inputList):
         print " In Kernel.meanstdv ; does not compute"
         return "na", "na"
 
+
 def clusterdistance(cluster1, cluster2):
     d1 = cluster1[0] - cluster2[0]
     d2 = cluster1[1] - cluster2[1]
     d3 = cluster1[2] - cluster2[2]
     sum = 0
-    for distdiff in [d1,d2,d3]:
+    for distdiff in [d1, d2, d3]:
         distdiff = distdiff**2
         sum += distdiff
     return sqrt(sum)

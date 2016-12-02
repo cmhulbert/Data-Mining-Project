@@ -141,7 +141,7 @@ class Cob(object):
             plt.show()
         return db
 
-    def showscatterplot(self):
+    def showscatterplot(self, s=20):
         '''
         creates a 3d scatter plot whose points are either pixels from all the kernels in this cob,
         or centers from the kmean clusters of each kernel in this cob.
@@ -163,12 +163,14 @@ class Cob(object):
         blist = lablists[2]
         for l, a, b in zip(llist, alist, blist):
             R, G, B = Kernel.HunterLabToRGB(l, a, b, normalized=True)
-            axes.scatter(l, a, b, color=[R, G, B], marker="o")
+            axes.scatter(l, a, b, color=[R, G, B], s=s)
         axes.set_xlabel('L')
         axes.set_ylabel('a')
         axes.set_zlabel('b')
         for cluster in self.clusters:
-            Kernel.addpoints(cluster[1], axes, marker="o", color="g")
+            addedsize = int(s*(cluster[0]/100.0))
+            s += addedsize
+            Kernel.addpoints(cluster[1], axes, marker="o", color="g", s=s)
         plt.ion()
         plt.show()
         return axes
