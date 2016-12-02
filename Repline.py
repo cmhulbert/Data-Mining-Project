@@ -40,6 +40,7 @@ class Repline(object):
         self.clusters = []
         if self.clustertype == "kmeans":
             self.kmeans()
+            self.checkdistance()
         elif self.clustertype == "dbscan":
             self.dbscan()
         self.mean = [0, 0, 0]
@@ -93,7 +94,7 @@ class Repline(object):
                                     line[3]), int(line[4])]
                                 listofpixels.append(currentpixel)
                         except Exception, e:
-                            print str(e)
+                            print str(e), "in create cobs"
                             IndexError
                 currentcob = Cob.Cob(
                     kernellist, basename, pixelcluster=False, clustertype=clustertype, stats=stats)
@@ -120,11 +121,15 @@ class Repline(object):
             meanc2 = kmeans.cluster_centers_[1].tolist()
             sizec1 = 0
             sizec2 = 0
-            for label in kmeans.labels_:
+            cobclusters = []
+            for cob in self.coblist:
+                for cluster in cob.clusters:
+                    cobclusters.append(cluster)
+            for label, cluster in zip(kmeans.labels_, cobclusters):
                 if label == 0:
-                    sizec1 += 1
+                    sizec1 += cluster[0]
                 elif label == 1:
-                    sizec2 += 1
+                    sizec2 += cluster[0]
             self.clusters.append([sizec1, meanc1])
             self.clusters.append([sizec2, meanc2])
         else:
@@ -210,14 +215,14 @@ class Repline(object):
             L = (c1[0] * c1[1][0] + c2[0] * c2[1][0]) / (c1[0] + c2[0])
             a = (c1[0] * c1[1][1] + c2[0] * c2[1][1]) / (c1[0] + c2[0])
             b = (c1[0] * c1[1][2] + c2[0] * c2[1][2]) / (c1[0] + c2[0])
-            self.cluster = [[c1[0] + c2[0]], [L, a, b]]
+            self.cluster = [c1[0] + c2[0], [L, a, b]]
             self.segregating = False
         else:
             self.cluster = [0,[0,0,0]]
             self.segregating = True
         return dist
 
-    def showscatterplot(self, s=20):
+    def showscatterplot(self, s=80):
         if len(self.coblist) == 1:
             self.coblist[0].showscatterplot(s)
         

@@ -66,11 +66,15 @@ class Cob(object):
         meanc2 = kmeans.cluster_centers_[1].tolist()
         sizec1 = 0
         sizec2 = 0
-        for label in kmeans.labels_:
+        kernelclusters = []
+        for kernel in self.kernellist:
+            for cluster in kernel.clusters:
+                kernelclusters.append(cluster)
+        for label, cluster in zip(kmeans.labels_, kernelclusters):
             if label == 0:
-                sizec1 += 1
+                sizec1 += cluster[0]
             elif label == 1:
-                sizec2 += 1
+                sizec2 += cluster[0]
         self.clusters.append([sizec1, meanc1])
         self.clusters.append([sizec2, meanc2])
 
@@ -163,12 +167,15 @@ class Cob(object):
         blist = lablists[2]
         for l, a, b in zip(llist, alist, blist):
             R, G, B = Kernel.HunterLabToRGB(l, a, b, normalized=True)
-            axes.scatter(l, a, b, color=[R, G, B], s=s)
+            axes.scatter(l, a, b, color=[R, G, B], marker = 's', s=s)
         axes.set_xlabel('L')
         axes.set_ylabel('a')
         axes.set_zlabel('b')
+        totalsize = 0
         for cluster in self.clusters:
-            addedsize = int(s*(cluster[0]/100.0))
+            totalsize += cluster[0]
+        for cluster in self.clusters:
+            addedsize = int(s * (cluster[0] / totalsize))
             s += addedsize
             Kernel.addpoints(cluster[1], axes, marker="o", color="g", s=s)
         plt.ion()
