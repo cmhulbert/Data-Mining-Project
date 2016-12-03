@@ -28,20 +28,22 @@ class Cob(object):
         self.numkernels = len(self.kernellist)
         self.type = 'pixels'
         self.mean = [0, 0, 0]
-        if pixelcluster == False:
-            self.type = 'kernels'
-            self.clusters = []
-            self.kernelcenters = []
-            self.setkernelcenters()
-        if self.clustertype == "kmeans":
-            self.clusters = []
-            self.kmeans(pixelcluster=pixelcluster)
-            self.mean = [0, 0, 0]
-        elif self.clustertype == "dbscan":
-            self.clusters = []
-            self.dbscan()
         if stats == True:
             self.setstats()
+        else:
+            if pixelcluster == False:
+                self.type = 'kernels'
+                self.clusters = []
+                self.kernelcenters = []
+                self.setkernelcenters()
+            if self.clustertype == "kmeans":
+                self.clusters = []
+                self.kmeans(pixelcluster=pixelcluster)
+                self.checkdistance()
+                self.mean = [0, 0, 0]
+            elif self.clustertype == "dbscan":
+                self.clusters = []
+                self.dbscan()
 
     def setkernelcenters(self):
         '''
@@ -145,7 +147,7 @@ class Cob(object):
             plt.show()
         return db
 
-    def showscatterplot(self, s=20):
+    def showscatterplot(self, s=20, closepreviousplot=True):
         '''
         creates a 3d scatter plot whose points are either pixels from all the kernels in this cob,
         or centers from the kmean clusters of each kernel in this cob.
@@ -157,9 +159,8 @@ class Cob(object):
             lablists = Kernel.threeTupleToThreeLists(pixels)
         else:
             lablists = Kernel.threeTupleToThreeLists(self.kernelcenters)
-        plot = plt.figure()
-        plt.close(1)
-        del plot
+        if closepreviousplot == True:
+            plt.close(1)
         plot = plt.figure()
         axes = plot.add_subplot(111, projection='3d')
         llist = lablists[0]
@@ -167,7 +168,7 @@ class Cob(object):
         blist = lablists[2]
         for l, a, b in zip(llist, alist, blist):
             R, G, B = Kernel.HunterLabToRGB(l, a, b, normalized=True)
-            axes.scatter(l, a, b, color=[R, G, B], marker = 's', s=s)
+            axes.scatter(l, a, b, color=[R, G, B], marker='s', s=s)
         axes.set_xlabel('L')
         axes.set_ylabel('a')
         axes.set_zlabel('b')
@@ -178,6 +179,22 @@ class Cob(object):
             addedsize = int(s * (cluster[0] / totalsize))
             s += addedsize
             Kernel.addpoints(cluster[1], axes, marker="o", color="g", s=s)
+        plt.title(self.name)
         plt.ion()
         plt.show()
         return axes
+
+    def checkdistance(self):
+        c1 = self.clusters[0]
+        c2 = self.clusters[1]
+        dist = Kernel.clusterdistance(c1[1], c2[1])
+        if dist < 7.5:
+            L = (c1[0] * c1[1][0] + c2[0] * c2[1][0]) / (c1[0] + c2[0])
+            a = (c1[0] * c1[1][1] + c2[0] * c2[1][1]) / (c1[0] + c2[0])
+            b = (c1[0] * c1[1][2] + c2[0] * c2[1][2]) / (c1[0] + c2[0])
+            self.cluster = [c1[0] + c2[0], [L, a, b]]
+            self.segregating = False
+        else:
+            self.cluster = [0, [0, 0, 0]]
+            self.segregating = True
+        return dist

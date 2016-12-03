@@ -39,27 +39,39 @@ class Kernel(object):
         self.sd = [0, 0, 0]
         self.clusters = []
         self.setpixels(pixellist)
-        if self.clustertype == "kmeans":
-            self.clusters = []
-            self.kmeans()
-            self.mode = [0, 0, 0]
-            self.mean = [0, 0, 0]
-            self.sd = [0, 0, 0]
-        if self.clustertype == "dbscan":
-            self.db = self.dbscan()
-        if self.clustertype == "none":
-            pass
         if stats == True:
-            self.setstats()
+            # uncomment if you want more than just the straight mean of all the pixels
+            # self.setstats()
+            pass
+        else:
+            if self.clustertype == "kmeans":
+                self.clusters = []
+                self.kmeans()
+                self.mode = [0, 0, 0]
+                self.mean = [0, 0, 0]
+                self.sd = [0, 0, 0]
+            if self.clustertype == "dbscan":
+                self.db = self.dbscan()
+            if self.clustertype == "none":
+                pass
 
-    def setpixels(self, pixellist):
+    def setpixels(self, pixellist, calculatemean = False):
         '''
         converts pixels from rgb to hunter lab and sets numberofpixels
         '''
+        L = 0
+        a = 0
+        b = 0
+        numberofpixels = 0
         for pixel in pixellist:
             hlab = RGBtoHunterLab(pixel[0], pixel[1], pixel[2])
+            L += hlab["L"]
+            a += hlab["A"]
+            b += hlab["B"]
             self.pixellist.append([hlab["L"], hlab["A"], hlab["B"]])
-        self.numberofpixels = len(self.pixellist)
+            numberofpixels += 1
+        self.numberofpixels = numberofpixels
+        self.mean = [float(L)/numberofpixels, float(a)/numberofpixels, float(b)/numberofpixels]
 
     def setstats(self):
         '''
@@ -67,10 +79,16 @@ class Kernel(object):
         '''
         frequencydict = {}
         llist, alist, blist = [], [], []
+        L = 0
+        a = 0
+        b = 0
         for pixel in self.pixellist:
             llist.append(pixel[0])
             alist.append(pixel[1])
             blist.append(pixel[2])
+            L += pixel[0]
+            a += pixel[1]
+            b += pixel[2]
             color = "l%.4f,a%.4f,b%.4f" % (pixel[0], pixel[1], pixel[2])
             if color in frequencydict.keys():
                 frequencydict[color] += 1

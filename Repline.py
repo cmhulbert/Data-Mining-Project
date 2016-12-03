@@ -36,16 +36,17 @@ class Repline(object):
         self.coblist = []
         self.cobcenters = []
         self.createcobs(clustertype=clustertype, stats=stats)
-        self.setcobcenters()
         self.clusters = []
-        if self.clustertype == "kmeans":
-            self.kmeans()
-            self.checkdistance()
-        elif self.clustertype == "dbscan":
-            self.dbscan()
         self.mean = [0, 0, 0]
+        self.setsegregating()
         if stats == True:
             self.setstats()
+        else:
+            self.setcobcenters()
+            if self.clustertype == "kmeans":
+                self.kmeans()
+            elif self.clustertype == "dbscan":
+                self.dbscan()
 
     def setdirectoryandrow(self, startindirectory='', row=''):
         '''
@@ -77,7 +78,7 @@ class Repline(object):
                     csvlist = list(csvreader)
                     listofpixels = []
                     currentkernel = 1
-                    for line in csvlist:
+                    for line in csvlist[:-1]:
                         try:
                             if line[0] == 'Image':
                                 pass
@@ -98,7 +99,17 @@ class Repline(object):
                             IndexError
                 currentcob = Cob.Cob(
                     kernellist, basename, pixelcluster=False, clustertype=clustertype, stats=stats)
+                print "Finished Cob: ",basename
                 self.coblist.append(currentcob)
+
+    def setsegregating(self):
+        numtrues = 0
+        for cob in self.coblist:
+            numtrues += cob.segregating
+        if (numtrues)>len(self.coblist)/2:
+            self.segregating = True
+        else:
+            self.segregating = False
 
     def setcobcenters(self):
         '''
@@ -111,6 +122,8 @@ class Repline(object):
     def kmeans(self):
         '''
         calculates kmeans centers for the repline from the centers of the cobs it contains
+
+        NOTE: this does not calculate kmeans right now, it calculates the straight mean.
         '''
         if len(self.coblist) > 1:
             for cob in self.coblist:
@@ -133,7 +146,10 @@ class Repline(object):
             self.clusters.append([sizec1, meanc1])
             self.clusters.append([sizec2, meanc2])
         else:
-            self.clusters = self.coblist[0].clusters
+            if self.segregating:
+                self.clusters = (self.coblist[0].clusters)
+            else:
+                self.clusters.append(self.coblist[0].cluster)
 
     def dbscan(self, eps=.5, plot=False):
         if len(self.coblist) > 1:
@@ -207,42 +223,43 @@ class Repline(object):
                      a / float(numcobs),
                      b / float(numcobs)]
 
-    def checkdistance(self):
-        c1 = self.clusters[0]
-        c2 = self.clusters[1]
-        dist = Kernel.clusterdistance(c1[1], c2[1])
-        if dist < 7.5:
-            L = (c1[0] * c1[1][0] + c2[0] * c2[1][0]) / (c1[0] + c2[0])
-            a = (c1[0] * c1[1][1] + c2[0] * c2[1][1]) / (c1[0] + c2[0])
-            b = (c1[0] * c1[1][2] + c2[0] * c2[1][2]) / (c1[0] + c2[0])
-            self.cluster = [c1[0] + c2[0], [L, a, b]]
-            self.segregating = False
-        else:
-            self.cluster = [0,[0,0,0]]
-            self.segregating = True
-        return dist
-
-    def showscatterplot(self, s=80):
+    def showscatterplot(self, s=80,closepreviousplot=True):
         if len(self.coblist) == 1:
-            self.coblist[0].showscatterplot(s)
-        
+            self.coblist[0].showscatterplot(s, closepreviousplot)
+        else:
+            print "multiple cobs present, please show the plot at the cob level."
 
+    def checkdistance(self):
+            c1 = self.clusters[0]
+            c2 = self.clusters[1]
+            dist = Kernel.clusterdistance(c1[1], c2[1])
+            if dist < 7.5:
+                L = (c1[0] * c1[1][0] + c2[0] * c2[1][0]) / (c1[0] + c2[0])
+                a = (c1[0] * c1[1][1] + c2[0] * c2[1][1]) / (c1[0] + c2[0])
+                b = (c1[0] * c1[1][2] + c2[0] * c2[1][2]) / (c1[0] + c2[0])
+                self.clusters = []
+                self.clusters.append([c1[0] + c2[0], [L, a, b]])
+                self.segregating = False
+            else:
+                self.segregating = True
+            return dist
 
-def test(clustertype="dbscan", stats=False, rownum = 23):
+def test(clustertype="kmeans", stats=False, rownum=23):
     # r = Repline(startInDirectory='..\src\TEST',
     #             row='A15LRH0_0012', clustertype=clustertype, stats=stats)
-    if rownum > 99:
-        row = "A15LRH0_0" + str(rownum)
-    elif rownum > 9:
-        row = "A15LRH0_00" + str(rownum)
-    elif rownum > -1:
+    if rownum < 10:
         row = "A15LRH0_000" + str(rownum)
+    elif rownum < 100:
+        row = "A15LRH0_00" + str(rownum)
+    elif rownum < 1000:
+        row = "A15LRH0_0" + str(rownum)
+    else:
+        row = "A15LRH0_" + str(rownum)
     from time import clock
     c1 = clock()
     r = Repline(startInDirectory='C:/Users/cmhul/Google Drive/College_/Corn_Color_Phenotyping/Hybrid_Phenotyping/Kernel CSVs',
                 clustertype="kmeans", row=row)
     print clock() - c1
-    r.checkdistance()
     return r
 
 if __name__ == '__main__':

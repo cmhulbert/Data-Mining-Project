@@ -30,23 +30,13 @@ def start(startindirectory='', write=True, clustertype='kmeans', stats='False'):
     for namenum in xrange(len(repnames)):
         repline = Repline.Repline(
             startInDirectory=startindirectory, row=repnames[namenum], clustertype=clustertype, stats=stats)
-        if repline.segregating == True:
-            print repnames[namenum], " segregating:"
-            for cluster in repline.clusters:
-                colorinfo = [repnames[namenum], cluster[0], cluster[
-                                 1][0], cluster[1][1], cluster[1][2]]
-                allcolorinfo.append(colorinfo)
-                print colorinfo
-        elif repline.segregating == False:
-            print repnames[namenum], " not segregating:"
-            cluster = repline.cluster
-            colorinfo = ([repname[namenum], cluster[0], cluster[
-                             1][0], cluster[1][1], cluster[1][2]])
+        for cluster in repline.clusters:
+            colorinfo = [repnames[namenum], cluster[0], cluster[1][0], cluster[1][1], cluster[1][2]]
             allcolorinfo.append(colorinfo)
-            print colorinfo
+            # print colorinfo
         if namenum < len(repnames) - 1:
             print "(", namenum + 1, "/", len(repnames), ")", "Finished: ", repline.name, "Constructing ", repnames[namenum + 1], "..."
-        else:
+        elif namenum == len(repnames):
             print "(", namenum + 1, "/", len(repnames), ")", "Finished: ", repline.name
             print "Done!"
     newFile = str(startindirectory) + "/TotalStats.csv"
@@ -57,6 +47,8 @@ def start(startindirectory='', write=True, clustertype='kmeans', stats='False'):
             results.write("\n")
     return allcolorinfo
 
+def test():
+    start('C:/Users/cmhul/Google Drive/College_/Corn_Color_Phenotyping/Landrace_Colorimeter_and_Pictures/Kernel CSVs')
 
 if __name__ == '__main__':
-    start()
+    start('C:/Users/cmhul/Google Drive/College_/Corn_Color_Phenotyping/Landrace_Colorimeter_and_Pictures/Kernel CSVs')
