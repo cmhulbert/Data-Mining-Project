@@ -122,8 +122,6 @@ class Repline(object):
     def kmeans(self):
         '''
         calculates kmeans centers for the repline from the centers of the cobs it contains
-
-        NOTE: this does not calculate kmeans right now, it calculates the straight mean.
         '''
         if len(self.coblist) > 1:
             for cob in self.coblist:
