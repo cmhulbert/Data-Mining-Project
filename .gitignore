@@ -1,3 +1,6 @@
+#Python Profiler
+*.prof
+
 # VS code config files
 .vscode/*
 

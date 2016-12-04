@@ -38,7 +38,6 @@ class Repline(object):
         self.createcobs(clustertype=clustertype, stats=stats)
         self.clusters = []
         self.mean = [0, 0, 0]
-        self.setsegregating()
         if stats == True:
             self.setstats()
         else:
@@ -99,17 +98,8 @@ class Repline(object):
                             IndexError
                 currentcob = Cob.Cob(
                     kernellist, basename, pixelcluster=False, clustertype=clustertype, stats=stats)
-                print "Finished Cob: ",basename
+                print "Finished Cob: ", basename
                 self.coblist.append(currentcob)
-
-    def setsegregating(self):
-        numtrues = 0
-        for cob in self.coblist:
-            numtrues += cob.segregating
-        if (numtrues)>len(self.coblist)/2:
-            self.segregating = True
-        else:
-            self.segregating = False
 
     def setcobcenters(self):
         '''
@@ -124,30 +114,29 @@ class Repline(object):
         calculates kmeans centers for the repline from the centers of the cobs it contains
         '''
         if len(self.coblist) > 1:
+            allkernelsizes = []
+            self.allkernelclusters = []
             for cob in self.coblist:
-                for cluster in cob.clusters:
-                    self.cobcenters.append(cluster[1])
-            kmeans = Kernel.KMeans(n_clusters=2).fit(self.cobcenters)
+                for kernel in cob.kernellist:
+                    for cluster in kernel.clusters:
+                        allkernelsizes.append(cluster[0])
+                        self.allkernelclusters.append(cluster[1])
+            kmeans = Kernel.KMeans(n_clusters=2).fit(self.allkernelclusters)
             meanc1 = kmeans.cluster_centers_[0].tolist()
             meanc2 = kmeans.cluster_centers_[1].tolist()
             sizec1 = 0
             sizec2 = 0
-            cobclusters = []
-            for cob in self.coblist:
-                for cluster in cob.clusters:
-                    cobclusters.append(cluster)
-            for label, cluster in zip(kmeans.labels_, cobclusters):
+            for label, size in zip(kmeans.labels_, allkernelsizes):
                 if label == 0:
-                    sizec1 += cluster[0]
+                    sizec1 += size
                 elif label == 1:
-                    sizec2 += cluster[0]
+                    sizec2 += size
             self.clusters.append([sizec1, meanc1])
             self.clusters.append([sizec2, meanc2])
+            self.checkdistance()
         else:
-            if self.segregating:
-                self.clusters = (self.coblist[0].clusters)
-            else:
-                self.clusters.append(self.coblist[0].cluster)
+            self.segregating = self.coblist[0].segregating
+            self.clusters = self.coblist[0].clusters
 
     def dbscan(self, eps=.5, plot=False):
         if len(self.coblist) > 1:
@@ -221,26 +210,51 @@ class Repline(object):
                      a / float(numcobs),
                      b / float(numcobs)]
 
-    def showscatterplot(self, s=80,closepreviousplot=True):
+    def showscatterplot(self, s=80, closepreviousplot=True):
         if len(self.coblist) == 1:
             self.coblist[0].showscatterplot(s, closepreviousplot)
         else:
-            print "multiple cobs present, please show the plot at the cob level."
+            lablists = Kernel.threeTupleToThreeLists(self.allkernelclusters)
+            if closepreviousplot == True:
+                plt.close(1)
+            plot = plt.figure()
+            axes = plot.add_subplot(111, projection='3d')
+            llist = lablists[0]
+            alist = lablists[1]
+            blist = lablists[2]
+            for l, a, b in zip(llist, alist, blist):
+                R, G, B = Kernel.HunterLabToRGB(l, a, b, normalized=True)
+                axes.scatter(l, a, b, color=[R, G, B], marker='s', s=s)
+            axes.set_xlabel('L')
+            axes.set_ylabel('a')
+            axes.set_zlabel('b')
+            totalsize = 0
+            for cluster in self.clusters:
+                totalsize += cluster[0]
+            for cluster in self.clusters:
+                addedsize = int(s * (cluster[0] / totalsize))
+                s += addedsize
+                Kernel.addpoints(cluster[1], axes, marker="o", color="g", s=s)
+            plt.title(self.name)
+            plt.ion()
+            plt.show()
+            return axes
 
     def checkdistance(self):
-            c1 = self.clusters[0]
-            c2 = self.clusters[1]
-            dist = Kernel.clusterdistance(c1[1], c2[1])
-            if dist < 7.5:
-                L = (c1[0] * c1[1][0] + c2[0] * c2[1][0]) / (c1[0] + c2[0])
-                a = (c1[0] * c1[1][1] + c2[0] * c2[1][1]) / (c1[0] + c2[0])
-                b = (c1[0] * c1[1][2] + c2[0] * c2[1][2]) / (c1[0] + c2[0])
-                self.clusters = []
-                self.clusters.append([c1[0] + c2[0], [L, a, b]])
-                self.segregating = False
-            else:
-                self.segregating = True
-            return dist
+        c1 = self.clusters[0]
+        c2 = self.clusters[1]
+        dist = Kernel.clusterdistance(c1[1], c2[1])
+        if dist < 7.5:
+            L = (c1[0] * c1[1][0] + c2[0] * c2[1][0]) / (c1[0] + c2[0])
+            a = (c1[0] * c1[1][1] + c2[0] * c2[1][1]) / (c1[0] + c2[0])
+            b = (c1[0] * c1[1][2] + c2[0] * c2[1][2]) / (c1[0] + c2[0])
+            self.clusters = []
+            self.clusters.append([c1[0] + c2[0], [L, a, b]])
+            self.segregating = False
+        else:
+            self.segregating = True
+        return dist
+
 
 def test(clustertype="kmeans", stats=False, rownum=23):
     # r = Repline(startInDirectory='..\src\TEST',

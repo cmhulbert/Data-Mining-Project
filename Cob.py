@@ -192,9 +192,9 @@ class Cob(object):
             L = (c1[0] * c1[1][0] + c2[0] * c2[1][0]) / (c1[0] + c2[0])
             a = (c1[0] * c1[1][1] + c2[0] * c2[1][1]) / (c1[0] + c2[0])
             b = (c1[0] * c1[1][2] + c2[0] * c2[1][2]) / (c1[0] + c2[0])
-            self.cluster = [c1[0] + c2[0], [L, a, b]]
+            self.clusters = []
+            self.clusters.append([c1[0] + c2[0], [L, a, b]])
             self.segregating = False
         else:
-            self.cluster = [0, [0, 0, 0]]
             self.segregating = True
         return dist
