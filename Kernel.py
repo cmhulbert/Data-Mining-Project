@@ -155,6 +155,10 @@ class Kernel(object):
                 bmean = blist.mean()
                 self.clusters.append([len(llist), [lmean, amean, bmean]])
                 r, g, b = HunterLabToRGB(lmean, amean, bmean)
+                from random import random
+                r = random()*255
+                g= random()*255
+                b = random()*255
                 colors.append([r / 255.0, g / 255.0, b / 255.0])
             else:
                 colors.append('k')
